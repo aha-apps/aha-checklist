@@ -1,0 +1,115 @@
+<!-- module.html — Template para módulo de Reportes -->
+<template id="reportes-template">
+  <div x-data="reportesData()" x-init="init()" class="animate__animated animate__fadeInUp">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-2xl font-bold flex items-center gap-2">
+        <i class="bi bi-bar-chart text-warning"></i> Reportes
+      </h2>
+      <button class="btn btn-primary" @click="exportarReporteCSV()">
+        <i class="bi bi-download"></i> Exportar CSV
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 hover:shadow-md transition-shadow">
+        <div class="stat-figure text-success"><i class="bi bi-check-circle text-3xl"></i></div>
+        <div class="stat-title text-sm">Cumplimiento</div>
+        <div class="stat-value text-3xl text-success" x-text="stats.porcentajeCumplimiento + '%'"></div>
+        <div class="stat-desc text-xs" x-text="stats.aprobadas + ' de ' + stats.totalInspecciones + ' aprobadas'"></div>
+      </div>
+      <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 hover:shadow-md transition-shadow">
+        <div class="stat-figure text-primary"><i class="bi bi-clipboard-data text-3xl"></i></div>
+        <div class="stat-title text-sm">Inspecciones Hoy</div>
+        <div class="stat-value text-3xl text-primary" x-text="stats.inspeccionesHoy"></div>
+        <div class="stat-desc text-xs" x-text="stats.totalInspecciones + ' en total'"></div>
+      </div>
+      <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 hover:shadow-md transition-shadow">
+        <div class="stat-figure text-error"><i class="bi bi-exclamation-triangle text-3xl"></i></div>
+        <div class="stat-title text-sm">Con Fallas</div>
+        <div class="stat-value text-3xl text-error" x-text="stats.equiposConFallas"></div>
+        <div class="stat-desc text-xs" x-text="stats.rechazadas + ' inspecciones rechazadas'"></div>
+      </div>
+      <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 hover:shadow-md transition-shadow">
+        <div class="stat-figure text-secondary"><i class="bi bi-collection text-3xl"></i></div>
+        <div class="stat-title text-sm">Cobertura</div>
+        <div class="stat-value text-3xl text-secondary" x-text="stats.totalPlantillas"></div>
+        <div class="stat-desc text-xs" x-text="stats.totalUbicaciones + ' ubicaciones, ' + stats.totalEquipos + ' equipos'"></div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <i class="bi bi-pie-chart text-primary"></i> Distribuci\u00f3n de Resultados
+        </h3>
+        <div class="h-64 flex items-center justify-center">
+          <canvas id="chartCumplimiento"></canvas>
+        </div>
+      </div>
+      <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <i class="bi bi-bar-chart text-secondary"></i> Resultados por Categor\u00eda
+        </h3>
+        <div class="h-64 flex items-center justify-center">
+          <canvas id="chartResultados"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tendencia -->
+    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 mb-6">
+      <h3 class="font-semibold mb-3 flex items-center gap-2">
+        <i class="bi bi-graph-up text-warning"></i> Tendencia (7 d\u00edas)
+      </h3>
+      <div class="h-64">
+        <canvas id="chartTendencia"></canvas>
+      </div>
+    </div>
+
+    <!-- Últimas inspecciones -->
+    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
+      <h3 class="font-semibold mb-3 flex items-center gap-2">
+        <i class="bi bi-clock-history text-info"></i> \u00daltimas Inspecciones
+      </h3>
+      <template x-if="inspeccionesRecientes.length">
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Resultado</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="ins in inspeccionesRecientes" :key="ins.id">
+                <tr>
+                  <td>
+                    <span class="badge badge-sm"
+                          :class="{'badge-success': ins.resultado === 'aprobado', 'badge-error': ins.resultado === 'rechazado', 'badge-warning': ins.resultado === 'observado', 'badge-ghost': !ins.resultado || ins.resultado === 'pendiente'}">
+                      <span x-text="ins.resultado || 'pendiente'"></span>
+                    </span>
+                  </td>
+                  <td class="text-sm" x-text="UI.formatDate(ins.createdAt)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+      <template x-if="!inspeccionesRecientes.length">
+        <p class="text-sm text-base-content/40 text-center py-4">Sin inspecciones registradas</p>
+      </template>
+    </div>
+
+    <!-- Loading skeleton -->
+    <template x-if="cargando">
+      <div class="space-y-3">
+        <div class="skeleton h-24 w-full"></div>
+        <div class="skeleton h-64 w-full"></div>
+        <div class="skeleton h-64 w-full"></div>
+      </div>
+    </template>
+  </div>
+</template>

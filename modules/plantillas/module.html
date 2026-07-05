@@ -1,0 +1,116 @@
+<!-- module.html — Template para módulo de Plantillas -->
+<template id="plantillas-template">
+  <div x-data="plantillasData()" x-init="init()" class="animate__animated animate__fadeInUp">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-2xl font-bold flex items-center gap-2">
+        <i class="bi bi-collection text-primary"></i> Plantillas
+      </h2>
+      <div class="flex gap-2">
+        <div class="dropdown dropdown-end">
+          <button class="btn btn-ghost btn-sm" tabindex="0">
+            <i class="bi bi-tags"></i> Categor\u00edas
+          </button>
+          <ul class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-56 border border-base-300 z-50">
+            <li class="menu-title"><span>Categor\u00edas</span></li>
+            <template x-for="cat in categorias" :key="cat.id">
+              <li class="flex items-center">
+                <span class="flex-1" x-text="cat.nombre"></span>
+                <button class="btn btn-ghost btn-xs text-error" @click="eliminarCategoria(cat.id)">
+                  <i class="bi bi-x"></i>
+                </button>
+              </li>
+            </template>
+            <li><div class="divider my-1"></div></li>
+            <li>
+              <a @click="toggleCategoriaForm()">
+                <i class="bi bi-plus-lg"></i> Nueva categor\u00eda
+              </a>
+            </li>
+            <li x-show="showCategoriaForm" class="p-2">
+              <div class="flex gap-2">
+                <input type="text" x-model="nuevaCategoria" class="input input-bordered input-sm flex-1" placeholder="Nombre" @keydown.enter="guardarCategoria()" />
+                <button class="btn btn-primary btn-sm" @click="guardarCategoria()">
+                  <i class="bi bi-check"></i>
+                </button>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <button class="btn btn-primary" @click="abrirForm()">
+          <i class="bi bi-plus-lg"></i> Nueva Plantilla
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      <input type="search" x-model="busqueda" placeholder="Buscar plantillas..." class="input input-bordered flex-1 min-w-[200px]" />
+    </div>
+
+    <!-- Lista -->
+    <template x-if="filtrados.length && !cargando">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th class="hidden sm:table-cell">Categor\u00eda</th>
+              <th class="hidden md:table-cell">Items</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="item in filtrados" :key="item.id">
+              <tr>
+                <td>
+                  <span class="font-medium" x-text="item.nombre"></span>
+                </td>
+                <td class="hidden sm:table-cell">
+                  <span class="badge badge-outline badge-sm" x-text="getCatName(item.categoriaId)"></span>
+                </td>
+                <td class="hidden md:table-cell">
+                  <span class="badge badge-ghost badge-sm">
+                    <span x-text="getItemsLength(item.items)"></span> items
+                  </span>
+                </td>
+                <td>
+                  <div class="flex gap-1">
+                    <button class="btn btn-sm btn-ghost" @click="configurarItems(item)" title="Configurar items">
+                      <i class="bi bi-list-check"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost" @click="abrirForm(item)" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost text-error" @click="eliminar(item)" title="Eliminar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Empty state -->
+    <template x-if="!filtrados.length && !cargando">
+      <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+        <i class="bi bi-collection text-6xl mb-4"></i>
+        <p class="text-lg mb-2">No hay plantillas a\u00fan</p>
+        <p class="text-sm mb-4">Crea tu primera plantilla de inspecci\u00f3n</p>
+        <button class="btn btn-primary" @click="abrirForm()">
+          <i class="bi bi-plus-lg"></i> Crear plantilla
+        </button>
+      </div>
+    </template>
+
+    <!-- Loading skeleton -->
+    <template x-if="cargando">
+      <div class="space-y-3">
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+      </div>
+    </template>
+  </div>
+</template>

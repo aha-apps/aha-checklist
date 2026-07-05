@@ -1,0 +1,155 @@
+<!-- module.html — Template para módulo de Ubicaciones y Equipos -->
+<template id="ubicaciones-template">
+  <div x-data="ubicacionesData()" x-init="init()" class="animate__animated animate__fadeInUp">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-2xl font-bold flex items-center gap-2">
+        <i class="bi bi-geo-alt text-accent"></i> Ubicaciones y Equipos
+      </h2>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" @click="tab='ubicaciones';abrirFormUbicacion()">
+          <i class="bi bi-plus-lg"></i> Ubicaci\u00f3n
+        </button>
+        <button class="btn btn-secondary" @click="tab='equipos';abrirFormEquipo()">
+          <i class="bi bi-plus-lg"></i> Equipo
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs tabs-boxed mb-4 bg-base-100 border border-base-200">
+      <a class="tab" :class="{'tab-active': tab === 'ubicaciones'}" @click="tab='ubicaciones';busqueda=''">
+        <i class="bi bi-building"></i> Ubicaciones
+      </a>
+      <a class="tab" :class="{'tab-active': tab === 'equipos'}" @click="tab='equipos';busqueda=''">
+        <i class="bi bi-tools"></i> Equipos
+      </a>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      <input type="search" x-model="busqueda" placeholder="Buscar..." class="input input-bordered flex-1 min-w-[200px]" />
+    </div>
+
+    <!-- ===== UBICACIONES ===== -->
+    <template x-if="tab === 'ubicaciones'">
+      <div>
+        <template x-if="filtrados.length && !cargando">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th class="hidden sm:table-cell">\u00c1rea</th>
+                  <th class="hidden md:table-cell">Creado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="item in filtrados" :key="item.id">
+                  <tr>
+                    <td>
+                      <span class="font-medium" x-text="item.nombre"></span>
+                    </td>
+                    <td class="hidden sm:table-cell">
+                      <span class="badge badge-outline badge-sm" x-text="item.area || '---'"></span>
+                    </td>
+                    <td class="hidden md:table-cell text-sm" x-text="UI.formatDate(item.createdAt)"></td>
+                    <td>
+                      <div class="flex gap-1">
+                        <button class="btn btn-sm btn-ghost" @click="abrirFormUbicacion(item)" title="Editar">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-ghost text-error" @click="eliminarUbicacion(item)" title="Eliminar">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <template x-if="!filtrados.length && !cargando">
+          <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+            <i class="bi bi-building text-6xl mb-4"></i>
+            <p class="text-lg mb-4">No hay ubicaciones</p>
+            <button class="btn btn-primary" @click="abrirFormUbicacion()">
+              <i class="bi bi-plus-lg"></i> Agregar ubicaci\u00f3n
+            </button>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- ===== EQUIPOS ===== -->
+    <template x-if="tab === 'equipos'">
+      <div>
+        <template x-if="filtrados.length && !cargando">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>C\u00f3digo</th>
+                  <th class="hidden sm:table-cell">Ubicaci\u00f3n</th>
+                  <th class="hidden md:table-cell">Frecuencia</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="item in filtrados" :key="item.id">
+                  <tr>
+                    <td>
+                      <span class="font-medium" x-text="item.nombre"></span>
+                    </td>
+                    <td>
+                      <span class="badge badge-ghost badge-sm" x-text="item.codigo"></span>
+                    </td>
+                    <td class="hidden sm:table-cell text-sm" x-text="getUbicacionName(item.ubicacionId)"></td>
+                    <td class="hidden md:table-cell">
+                      <span class="text-sm">Cada <strong x-text="item.frecuencia"></strong> d\u00edas</span>
+                    </td>
+                    <td>
+                      <div class="flex gap-1">
+                        <button class="btn btn-sm btn-ghost" @click="verHistorial(item)" title="Historial">
+                          <i class="bi bi-clock-history"></i>
+                        </button>
+                        <button class="btn btn-sm btn-ghost" @click="abrirFormEquipo(item)" title="Editar">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-ghost text-error" @click="eliminarEquipo(item)" title="Eliminar">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <template x-if="!filtrados.length && !cargando">
+          <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+            <i class="bi bi-tools text-6xl mb-4"></i>
+            <p class="text-lg mb-2">No hay equipos</p>
+            <p class="text-sm mb-4">Agrega ubicaciones primero, luego equipos</p>
+            <button class="btn btn-secondary" @click="abrirFormEquipo()">
+              <i class="bi bi-plus-lg"></i> Agregar equipo
+            </button>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Loading skeleton -->
+    <template x-if="cargando">
+      <div class="space-y-3">
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+      </div>
+    </template>
+  </div>
+</template>

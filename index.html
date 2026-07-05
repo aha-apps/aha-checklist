@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#eab308">
+  <meta name="description" content="AHA Checklist — Inspecciones y checklists t\u00e9cnicos offline">
+  <title>AHA Checklist</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23eab308'/%3E%3Ctext x='50' y='68' text-anchor='middle' fill='white' font-size='50' font-weight='bold' font-family='system-ui'%3EC%3C/text%3E%3C/svg%3E">
+
+  <!-- CDN CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+
+  <style>
+    :root { --font-family: 'Inter', system-ui, sans-serif; font-family: var(--font-family); }
+    body { font-family: var(--font-family); }
+    [x-cloak] { display: none !important; }
+    .skip-link:focus { outline: 2px solid #eab308; outline-offset: 2px; }
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+    .sidebar-transition { transition: width 0.3s ease, margin-left 0.3s ease; }
+    .stat { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .modal-box { max-height: 85vh; overflow-y: auto; }
+    .table th { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+    .badge-outline { border: 1px solid currentColor; }
+    .item-drag { cursor: grab; }
+    .item-drag:active { cursor: grabbing; }
+    .item-row { transition: background-color 0.15s ease; }
+    .item-row:hover { background-color: rgba(234, 179, 8, 0.05); }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="min-h-screen bg-base-200">
+
+  <a href="#app-content" class="skip-link sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-content focus:rounded-lg">
+    Saltar al contenido
+  </a>
+
+  <div id="a11y-live-region" aria-live="polite" class="sr-only"></div>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside x-data="checklistSidebar()" x-init="init()"
+           class="fixed top-0 left-0 z-40 h-screen transition-all duration-300 bg-base-100 border-r border-base-300 flex flex-col sidebar-transition"
+           :class="colapsado ? 'w-16' : 'w-64'">
+
+      <div class="flex items-center h-16 px-4 border-b border-base-300 shrink-0">
+        <div class="flex items-center gap-3 overflow-hidden" :class="colapsado ? 'justify-center w-full' : ''">
+          <div class="avatar placeholder">
+            <div class="w-8 rounded-lg bg-primary text-primary-content text-xs font-bold">
+              <span>C</span>
+            </div>
+          </div>
+          <div x-show="!colapsado" class="truncate">
+            <div class="font-semibold text-sm truncate">AHA Checklist</div>
+            <div class="text-[10px] text-base-content/40 leading-tight truncate">Lite</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto overflow-x-hidden py-2 scrollbar-thin" x-data="{ active: '' }">
+        <template x-for="mod in modulos" :key="mod.id">
+          <a href="#/plantillas" @click.prevent="navegar(mod.id)"
+             class="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors cursor-pointer"
+             :class="active === mod.id ? 'bg-primary text-primary-content' : 'hover:bg-base-200 text-base-content/70 hover:text-base-content'">
+            <i :class="mod.icono" class="text-lg shrink-0 w-6 text-center"></i>
+            <span x-show="!colapsado" class="text-sm truncate" x-text="mod.titulo"></span>
+          </a>
+        </template>
+      </div>
+
+      <div class="border-t border-base-300 p-3 shrink-0">
+        <div class="flex items-center justify-between">
+          <button @click="toggleColapso" class="btn btn-ghost btn-sm btn-square" title="Colapsar men\u00fa">
+            <i class="bi bi-layout-sidebar" :class="{ 'rotate-180': colapsado }"></i>
+          </button>
+          <div x-show="!colapsado" class="flex gap-1">
+            <button @click="exportarBackup" class="btn btn-ghost btn-xs btn-square" title="Exportar respaldo">
+              <i class="bi bi-download"></i>
+            </button>
+            <button onclick="document.getElementById('file-import').click()" class="btn btn-ghost btn-xs btn-square" title="Importar respaldo">
+              <i class="bi bi-upload"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div x-data x-show="$store.sidebar?.mobileOpen" @click="$store.sidebar.mobileOpen = false"
+         class="fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
+
+    <!-- Main area -->
+    <div class="flex-1 flex flex-col min-h-screen sidebar-transition"
+         :style="'margin-left: ' + (colapsado ? '4rem' : '16rem')">
+
+      <!-- Navbar -->
+      <header x-data="checklistNavbar()" x-init="init()"
+              class="sticky top-0 z-30 flex items-center h-16 gap-3 px-4 bg-base-100/80 backdrop-blur border-b border-base-300 shadow-sm">
+
+        <button class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleMobile">
+          <i class="bi bi-list text-xl"></i>
+        </button>
+
+        <div class="flex items-center gap-2 text-sm breadcrumbs">
+          <ul>
+            <li><a href="#/" @click.prevent="irAlInicio" class="text-base-content/50"><i class="bi bi-house"></i></a></li>
+            <template x-for="(crumb, i) in breadcrumbs" :key="i">
+              <li><span :class="i === breadcrumbs.length - 1 ? 'font-medium text-base-content' : 'text-base-content/50'" x-text="crumb"></span></li>
+            </template>
+          </ul>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <div class="flex items-center gap-1">
+          <button class="btn btn-ghost btn-sm btn-square" onclick="document.getElementById('search-input').focus()" title="Buscar">
+            <i class="bi bi-search"></i>
+          </button>
+
+          <button class="btn btn-ghost btn-sm btn-square relative" @click="toggleTheme" title="Tema">
+            <i class="bi bi-moon-stars" x-show="$store.theme?.mode === 'light'"></i>
+            <i class="bi bi-sun" x-show="$store.theme?.mode === 'dark'"></i>
+          </button>
+
+          <div class="dropdown dropdown-end" x-data="{ abierto: false }">
+            <button class="btn btn-ghost btn-sm btn-circle" @click="abierto = !abierto" tabindex="0">
+              <div class="avatar placeholder">
+                <div class="w-7 rounded-full bg-primary text-primary-content text-xs font-bold">C</div>
+              </div>
+            </button>
+            <ul class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300 z-50"
+                @click.outside="abierto = false">
+              <li class="menu-title"><span>AHA Checklist</span></li>
+              <li><a @click="abierto=false;exportarBackup()"><i class="bi bi-download"></i> Exportar backup</a></li>
+              <li><a @click="abierto=false;document.getElementById('file-import').click()"><i class="bi bi-upload"></i> Importar backup</a></li>
+              <li><div class="divider my-1"></div></li>
+              <li><a @click="abierto=false;acercaDe()"><i class="bi bi-info-circle"></i> Acerca de</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <!-- Import input (hidden) -->
+      <input type="file" id="file-import" accept=".ateje-backup" class="hidden"
+             onchange="if(this.files[0]){SyncEngine.importarBackup(this.files[0]);this.value=''}">
+
+      <!-- Main content -->
+      <main id="app-content" class="flex-1 p-4 md:p-6">
+        <div class="flex items-center justify-center h-64 text-base-content/40" x-show="!$store.app?.moduloActual && !$store.app?.loading">
+          <div class="text-center">
+            <i class="bi bi-clipboard-check text-5xl mb-4 block animate-pulse text-primary"></i>
+            <p class="text-sm">Cargando...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast toast-end toast-bottom z-[80]"></div>
+
+  <!-- Loading overlay -->
+  <div id="ui-loading-overlay" class="fixed inset-0 z-[90] flex items-center justify-center bg-base-200/80 backdrop-blur-sm hidden">
+    <div class="text-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="mt-2 text-sm text-base-content/60"></p>
+    </div>
+  </div>
+
+  <!-- ============ ALPINE STORES (must be before Alpine processes DOM) ============ -->
+  <script>
+    document.addEventListener('alpine:init', function () {
+      Alpine.store('app', { moduloActual: '', cargando: false, error: null });
+      Alpine.store('theme', {
+        mode: localStorage.getItem('theme') || 'light',
+        init: function () {
+          this.$watch('mode', function (val) {
+            localStorage.setItem('theme', val);
+            document.documentElement.setAttribute('data-theme', val);
+          });
+        }
+      });
+      Alpine.store('sidebar', {
+        colapsado: localStorage.getItem('sidebar_colapsado') === 'true',
+        mobileOpen: false,
+        toggleColapso: function () { this.colapsado = !this.colapsado; localStorage.setItem('sidebar_colapsado', this.colapsado); },
+        toggleMobile: function () { this.mobileOpen = !this.mobileOpen; }
+      });
+      Alpine.store('network', {
+        online: navigator.onLine,
+        init: function () {
+          window.addEventListener('online', function () { this.online = true; }.bind(this));
+          window.addEventListener('offline', function () { this.online = false; }.bind(this));
+        }
+      });
+    });
+  </script>
+
+  <!-- ============ SIDEBAR ALPINE ============ -->
+  <script>
+    function checklistSidebar() {
+      return {
+        colapsado: localStorage.getItem('sidebar_colapsado') === 'true',
+        modulos: window.APP_CONFIG && window.APP_CONFIG.modulos
+          ? [
+              { id: 'plantillas', titulo: 'Plantillas', icono: 'bi bi-collection' },
+              { id: 'inspecciones', titulo: 'Inspecciones', icono: 'bi bi-clipboard-check' },
+              { id: 'ubicaciones', titulo: 'Ubicaciones y Equipos', icono: 'bi bi-geo-alt' },
+              { id: 'reportes', titulo: 'Reportes', icono: 'bi bi-bar-chart' }
+            ] : [],
+        active: '',
+
+        init: function () {
+          this.cargarEstado();
+          window.addEventListener('hashchange', function () { this.cargarEstado(); }.bind(this));
+        },
+
+        cargarEstado: function () {
+          var hash = window.location.hash || '#/';
+          var match = hash.match(/^#\/([^?]+)/);
+          this.active = match ? match[1] : '';
+        },
+
+        toggleColapso: function () {
+          this.colapsado = !this.colapsado;
+          localStorage.setItem('sidebar_colapsado', this.colapsado);
+        },
+
+        navegar: function (id) {
+          window.appRouter && window.appRouter.navigate(id);
+          this.active = id;
+        },
+
+        exportarBackup: function () {
+          window.SyncEngine && window.SyncEngine.exportarBackup();
+        }
+      };
+    }
+  </script>
+
+  <!-- ============ NAVBAR ALPINE ============ -->
+  <script>
+    function checklistNavbar() {
+      return {
+        breadcrumbs: ['Inicio'],
+        moduloActual: '',
+
+        init: function () {
+          this.actualizarRuta();
+          window.addEventListener('hashchange', function () { this.actualizarRuta(); }.bind(this));
+        },
+
+        actualizarRuta: function () {
+          var hash = window.location.hash || '#/';
+          var match = hash.match(/^#\/([^?]+)/);
+          var mod = match ? match[1] : '';
+          this.moduloActual = mod;
+          var modInfo = window.MODULES && window.MODULES[mod];
+          if (modInfo) {
+            this.breadcrumbs = ['Inicio', modInfo.titulo || mod];
+          } else {
+            this.breadcrumbs = mod ? ['Inicio', mod] : ['Inicio'];
+          }
+        },
+
+        toggleMobile: function () {
+          var sidebar = Alpine.store('sidebar');
+          if (sidebar) sidebar.toggleMobile();
+        },
+
+        toggleTheme: function () {
+          var theme = Alpine.store('theme');
+          if (theme) { theme.mode = theme.mode === 'light' ? 'dark' : 'light'; }
+        },
+
+        irAlInicio: function () {
+          window.appRouter && window.appRouter.navigate('');
+        },
+
+        exportarBackup: function () {
+          window.SyncEngine && window.SyncEngine.exportarBackup();
+        },
+
+        acercaDe: function () {
+          window.UI && window.UI.toast('AHA Checklist v1.0.0 — Lite', 'info');
+        }
+      };
+    }
+  </script>
+
+  <!-- ============ SEARCH PALETTE ============ -->
+  <div x-data="searchPalette()" x-init="init()"
+       @keydown.window.cmd.k.prevent="openPalette()"
+       @keydown.window.ctrl.k.prevent="openPalette()"
+       @keydown.window="onKeydown">
+    <template x-teleport="body">
+      <div x-show="open" x-cloak class="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh]"
+           @click.away="closePalette">
+        <div class="absolute inset-0 bg-base-300/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-xl">
+          <div class="bg-base-100 rounded-2xl shadow-2xl border border-base-300 overflow-hidden">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-base-200">
+              <svg class="w-5 h-5 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input id="search-input" x-model="query" type="text" class="flex-1 bg-transparent border-0 outline-none text-base placeholder:text-base-content/30"
+                     placeholder="Buscar m\u00f3dulos...">
+              <kbd class="hidden sm:inline-flex px-2 py-0.5 text-xs rounded bg-base-200 text-base-content/50">ESC</kbd>
+            </div>
+            <div class="max-h-80 overflow-y-auto p-2">
+              <template x-if="!hasResults && query.length >= 2">
+                <div class="px-3 py-8 text-center text-sm text-base-content/40">
+                  <svg class="w-8 h-8 mx-auto mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Sin resultados para "<span x-text="query"></span>"
+                </div>
+              </template>
+              <template x-if="!query">
+                <div class="px-3 py-2 text-xs font-semibold text-base-content/40 uppercase tracking-wider">M\u00f3dulos</div>
+              </template>
+              <template x-for="(item, i) in filtered" :key="i">
+                <div @click="selectItem(item)" @mouseenter="keyboardNav = false"
+                     :class="{'bg-primary/10 text-primary': keyboardNav && i === selectedIdx, 'hover:bg-base-200': !(keyboardNav && i === selectedIdx)}"
+                     class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors">
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-base-200 text-base-content/60 shrink-0">
+                    <i :class="item.icon" class="text-sm"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate" x-text="item.title"></div>
+                  </div>
+                  <span class="badge badge-ghost badge-sm">m\u00f3dulo</span>
+                </div>
+              </template>
+            </div>
+            <div class="flex items-center gap-4 px-5 py-2.5 border-t border-base-200 text-xs text-base-content/40">
+              <span class="flex items-center gap-1"><kbd class="kbd kbd-xs">\u2191\u2193</kbd> Navegar</span>
+              <span class="flex items-center gap-1"><kbd class="kbd kbd-xs">\u21b5</kbd> Abrir</span>
+              <span class="flex items-center gap-1"><kbd class="kbd kbd-xs">Esc</kbd> Cerrar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <script>
+    function searchPalette() {
+      return {
+        open: false,
+        query: '',
+        selectedIdx: 0,
+        keyboardNav: true,
+        modules: [
+          { title: 'Plantillas', id: 'plantillas', icon: 'bi bi-collection' },
+          { title: 'Inspecciones', id: 'inspecciones', icon: 'bi bi-clipboard-check' },
+          { title: 'Ubicaciones y Equipos', id: 'ubicaciones', icon: 'bi bi-geo-alt' },
+          { title: 'Reportes', id: 'reportes', icon: 'bi bi-bar-chart' }
+        ],
+
+        get filtered() {
+          var q = this.query.toLowerCase().trim();
+          if (!q) return this.modules;
+          return this.modules.filter(function (m) {
+            return m.title.toLowerCase().indexOf(q) !== -1 || m.id.indexOf(q) !== -1;
+          });
+        },
+
+        get hasResults() { return this.filtered.length > 0; },
+
+        init: function () {},
+
+        openPalette: function () {
+          this.open = true;
+          this.query = '';
+          this.selectedIdx = 0;
+          var self = this;
+          setTimeout(function () {
+            var input = document.getElementById('search-input');
+            if (input) input.focus();
+          }, 100);
+        },
+
+        closePalette: function () {
+          this.open = false;
+          this.query = '';
+        },
+
+        selectItem: function (item) {
+          this.closePalette();
+          if (window.appRouter) window.appRouter.navigate(item.id);
+        },
+
+        onKeydown: function (e) {
+          if (!this.open) return;
+          if (e.key === 'Escape') { this.closePalette(); return; }
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.keyboardNav = true;
+            this.selectedIdx = Math.min(this.selectedIdx + 1, this.filtered.length - 1);
+          }
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.keyboardNav = true;
+            this.selectedIdx = Math.max(this.selectedIdx - 1, 0);
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            var items = this.filtered;
+            if (items[this.selectedIdx]) this.selectItem(items[this.selectedIdx]);
+          }
+        }
+      };
+    }
+  </script>
+
+  <!-- ============ CDN JS LIBS ============ -->
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.7/dist/dexie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- ============ CORE SCRIPTS ============ -->
+  <script src="core/env.js"></script>
+  <script src="project.config.js"></script>
+  <script src="core/db.js"></script>
+  <script src="core/crypto.js"></script>
+  <script src="core/ui.js"></script>
+  <script src="core/theme.js"></script>
+  <script src="core/app.js"></script>
+  <script src="core/file-store.js"></script>
+  <script src="core/sync.js"></script>
+  <script src="core/license.js"></script>
+
+  <!-- ============ SEED DATA ============ -->
+  <script src="data/seed.js"></script>
+
+  <!-- ============ MODULES ============ -->
+  <script src="modules/plantillas/module.js"></script>
+  <script src="modules/inspecciones/module.js"></script>
+  <script src="modules/ubicaciones/module.js"></script>
+  <script src="modules/reportes/module.js"></script>
+
+  <!-- ============ MAIN ============ -->
+  <script src="core/main.js"></script>
+
+</body>
+</html>

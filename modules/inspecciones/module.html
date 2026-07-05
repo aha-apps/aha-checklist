@@ -1,0 +1,95 @@
+<!-- module.html — Template para módulo de Inspecciones -->
+<template id="inspecciones-template">
+  <div x-data="inspeccionesData()" x-init="init()" class="animate__animated animate__fadeInUp">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-2xl font-bold flex items-center gap-2">
+        <i class="bi bi-clipboard-check text-secondary"></i> Inspecciones
+      </h2>
+      <button class="btn btn-primary" @click="nuevaInspeccion()">
+        <i class="bi bi-plus-lg"></i> Nueva Inspecci\u00f3n
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      <input type="search" x-model="busqueda" placeholder="Buscar..." class="input input-bordered flex-1 min-w-[200px]" />
+      <select x-model="filtroEstado" class="select select-bordered select-sm">
+        <option value="">Todos</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="aprobado">Aprobado</option>
+        <option value="observado">Observado</option>
+        <option value="rechazado">Rechazado</option>
+      </select>
+    </div>
+
+    <!-- Lista -->
+    <template x-if="filtrados.length && !cargando">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th class="hidden md:table-cell">Plantilla</th>
+              <th class="hidden sm:table-cell">Ubicaci\u00f3n</th>
+              <th>Resultado</th>
+              <th class="hidden sm:table-cell">Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="item in filtrados" :key="item.id">
+              <tr>
+                <td class="hidden md:table-cell">
+                  <span class="text-sm" x-text="getPlantillaName(item.plantillaId)"></span>
+                </td>
+                <td class="hidden sm:table-cell">
+                  <span class="text-sm" x-text="getUbicacionName(item.ubicacionId)"></span>
+                  <span x-show="item.equipoId" class="text-xs text-base-content/50 block" x-text="getEquipoName(item.equipoId)"></span>
+                </td>
+                <td>
+                  <span class="badge" :class="badgeClass(item.resultado)">
+                    <i class="bi" :class="{'bi-check-circle': item.resultado==='aprobado', 'bi-x-circle': item.resultado==='rechazado', 'bi-exclamation-triangle': item.resultado==='observado', 'bi-clock': item.resultado==='pendiente'}"></i>
+                    <span x-text="item.resultado"></span>
+                  </span>
+                </td>
+                <td class="hidden sm:table-cell text-sm" x-text="UI.formatDate(item.createdAt)"></td>
+                <td>
+                  <div class="flex gap-1">
+                    <button class="btn btn-sm btn-ghost" @click="llenarResultados(item.id)" title="Resultados">
+                      <i class="bi bi-list-check"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost" @click="verDetalle(item)" title="Detalle">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost text-error" @click="eliminar(item)" title="Eliminar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Empty state -->
+    <template x-if="!filtrados.length && !cargando">
+      <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+        <i class="bi bi-clipboard-check text-6xl mb-4"></i>
+        <p class="text-lg mb-2">No hay inspecciones</p>
+        <p class="text-sm mb-4">Crea una nueva inspecci\u00f3n usando una plantilla</p>
+        <button class="btn btn-primary" @click="nuevaInspeccion()">
+          <i class="bi bi-plus-lg"></i> Nueva Inspecci\u00f3n
+        </button>
+      </div>
+    </template>
+
+    <!-- Loading skeleton -->
+    <template x-if="cargando">
+      <div class="space-y-3">
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+        <div class="skeleton h-12 w-full"></div>
+      </div>
+    </template>
+  </div>
+</template>
