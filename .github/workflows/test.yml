@@ -1,0 +1,33 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check ES5 compliance
+        run: |
+          echo "::notice::Checking ES5 compliance"
+          FAIL=0
+          for f in $(find . -name '*.js' -not -path './.git/*' -not -path './assets/*' | head -100); do
+            if grep -nE '\bconst\b|\blet\b' "$f" 2>/dev/null; then
+              echo "::error file=$f::Found const/let"
+              FAIL=1
+            fi
+            if grep -nE '=>' "$f" 2>/dev/null; then
+              echo "::error file=$f::Found arrow function"
+              FAIL=1
+            fi
+            if grep -nE '\basync\b|\bawait\b' "$f" 2>/dev/null; then
+              echo "::error file=$f::Found async/await"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then exit 1; fi
+          echo "::notice::All ES5 checks passed"
